@@ -1,17 +1,19 @@
 import feedparser
-import json
+from jinja2 import Environment, FileSystemLoader
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 KST = timezone(timedelta(hours=9))
 
+_SEARCH = "https://news.google.com/rss/search?q={q}&hl=ko&gl=KR&ceid=KR:ko"
+
 FEEDS = {
-    "헤드라인": "https://feeds.feedburner.com/navernews/top_news",
-    "정치":     "https://feeds.feedburner.com/navernews/politics",
-    "경제":     "https://feeds.feedburner.com/navernews/economy",
-    "사회":     "https://feeds.feedburner.com/navernews/society",
-    "세계":     "https://feeds.feedburner.com/navernews/world",
-    "IT/과학":  "https://feeds.feedburner.com/navernews/it_science",
+    "헤드라인": "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx1YlY4U0FtdHZHZ0pMVWlnQVAB?hl=ko&gl=KR&ceid=KR:ko",
+    "정치":     _SEARCH.format(q="정치"),
+    "경제":     _SEARCH.format(q="경제"),
+    "사회":     _SEARCH.format(q="사회"),
+    "세계":     _SEARCH.format(q="국제+세계"),
+    "IT/과학":  _SEARCH.format(q="IT+과학+기술"),
 }
 
 def parse_feed(category: str, url: str) -> list[dict]:
@@ -19,29 +21,36 @@ def parse_feed(category: str, url: str) -> list[dict]:
     items = []
     for entry in feed.entries[:10]:
         items.append({
-            "title":    entry.get("title", "").strip(),
-            "link":     entry.get("link", ""),
-            "summary":  entry.get("summary", "").strip(),
-            "category": category,
+            "title":   entry.get("title", "").strip(),
+            "link":    entry.get("link", ""),
+            "summary": entry.get("summary", "").strip(),
         })
     return items
 
 def main():
-    all_news = []
+    news_by_category = {}
     for category, url in FEEDS.items():
-        all_news.extend(parse_feed(category, url))
+        items = parse_feed(category, url)
+        if items:
+            news_by_category[category] = items
 
-    now = datetime.now(KST).strftime("%Y년 %m월 %d일 %H:%M KST")
+    updated_at = datetime.now(KST).strftime("%Y년 %m월 %d일 %H:%M KST")
 
-    output = {
-        "updated_at": now,
-        "news": all_news,
-    }
+    root = Path(__file__).parent.parent
+    env = Environment(loader=FileSystemLoader(root / "templates"))
+    template = env.get_template("index.html")
 
-    out_path = Path(__file__).parent.parent / "site" / "data.json"
-    out_path.parent.mkdir(exist_ok=True)
-    out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[done] {len(all_news)}건 저장 → {out_path}")
+    html = template.render(
+        updated_at=updated_at,
+        categories=list(news_by_category.keys()),
+        news_by_category=news_by_category,
+    )
+
+    out = root / "site" / "index.html"
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(html, encoding="utf-8")
+    total = sum(len(v) for v in news_by_category.values())
+    print(f"[done] {total}건 → {out}")
 
 if __name__ == "__main__":
     main()

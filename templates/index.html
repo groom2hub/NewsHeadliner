@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NewsHeadliner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f9f9f9;
+      color: #111;
+      min-height: 100vh;
+    }
+
+    header {
+      border-bottom: 2px solid #111;
+      padding: 2rem 1.5rem 1rem;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    header h1 { font-size: 1.6rem; letter-spacing: -0.5px; }
+    header p  { font-size: 0.8rem; color: #666; margin-top: 0.3rem; }
+
+    nav {
+      max-width: 860px;
+      margin: 1.2rem auto 0;
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    nav button {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    nav button:hover,
+    nav button.active {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+    }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+
+    .section { display: none; }
+    .section.visible { display: block; }
+
+    .section h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #999;
+      margin-bottom: 1rem;
+    }
+
+    ul { list-style: none; }
+
+    li {
+      border-bottom: 1px solid #eee;
+      padding: 0.9rem 0;
+    }
+    li:last-child { border-bottom: none; }
+
+    li a {
+      text-decoration: none;
+      color: inherit;
+      font-size: 0.95rem;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    li a:hover { text-decoration: underline; }
+
+    li p {
+      font-size: 0.78rem;
+      color: #777;
+      margin-top: 0.3rem;
+      line-height: 1.4;
+
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.72rem;
+      color: #bbb;
+      padding: 2rem 0;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>NewsHeadliner</h1>
+  <p>{{ updated_at }} 기준</p>
+</header>
+
+<nav id="nav">
+  {% for category in categories %}
+  <button data-cat="{{ category }}"{% if loop.first %} class="active"{% endif %}>
+    {{ category }}
+  </button>
+  {% endfor %}
+</nav>
+
+<main>
+  {% for category, items in news_by_category.items() %}
+  <section class="section{% if loop.first %} visible{% endif %}" data-cat="{{ category }}">
+    <h2>{{ category }}</h2>
+    <ul>
+      {% for item in items %}
+      <li>
+        <a href="{{ item.link }}" target="_blank" rel="noopener">{{ item.title }}</a>
+        {% if item.summary %}<p>{{ item.summary }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</main>
+
+<footer>
+  출처: 네이버 뉴스 RSS &nbsp;·&nbsp; 매일 09:00 KST 자동 업데이트
+</footer>
+
+<script>
+  const nav  = document.getElementById('nav');
+  const secs = document.querySelectorAll('.section');
+
+  nav.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const cat = btn.dataset.cat;
+
+    nav.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    secs.forEach(s => s.classList.toggle('visible', s.dataset.cat === cat));
+  });
+</script>
+
+</body>
+</html>
