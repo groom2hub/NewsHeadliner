@@ -16,15 +16,31 @@ FEEDS = {
     "IT/과학":  _SEARCH.format(q="IT+과학+기술"),
 }
 
+def split_title_source(raw: str) -> tuple[str, str]:
+    """'제목 - 출처' 형태에서 제목과 출처를 분리."""
+    for sep in (" - ", " – ", " — "):
+        if sep in raw:
+            idx = raw.rfind(sep)
+            return raw[:idx].strip(), raw[idx + len(sep):].strip()
+    return raw.strip(), ""
+
 def parse_feed(category: str, url: str) -> list[dict]:
     feed = feedparser.parse(url)
     items = []
-    for entry in feed.entries[:10]:
+    seen = set()
+    for entry in feed.entries[:15]:
+        raw_title = entry.get("title", "").strip()
+        title, source = split_title_source(raw_title)
+        if title in seen:
+            continue
+        seen.add(title)
         items.append({
-            "title":   entry.get("title", "").strip(),
-            "link":    entry.get("link", ""),
-            "summary": entry.get("summary", "").strip(),
+            "title":  title,
+            "source": source,
+            "link":   entry.get("link", ""),
         })
+        if len(items) == 10:
+            break
     return items
 
 def main():
@@ -34,7 +50,7 @@ def main():
         if items:
             news_by_category[category] = items
 
-    updated_at = datetime.now(KST).strftime("%Y년 %m월 %d일 %H:%M KST")
+    updated_at = datetime.now(KST).strftime("%Y년 %m월 %d일 %H:%M")
 
     root = Path(__file__).parent.parent
     env = Environment(loader=FileSystemLoader(root / "templates"))
